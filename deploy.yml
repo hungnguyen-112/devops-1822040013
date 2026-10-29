@@ -1,0 +1,53 @@
+name: CI/CD Pipeline for Static Website
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  check:
+    name: Check Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify required files and title
+        run: |
+          echo "Checking if required files exist..."
+          if [ ! -f "index.html" ] || [ ! -f "style.css" ] || [ ! -f "script.js" ]; then
+            echo "Error: Missing one or more required files."
+            exit 1
+          fi
+          echo "Checking if index.html contains <title> tag..."
+          if ! grep -q "<title>" index.html; then
+            echo "Error: index.html is missing the <title> tag."
+            exit 1
+          fi
+          echo "All checks passed successfully!"
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
